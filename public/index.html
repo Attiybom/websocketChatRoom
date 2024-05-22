@@ -43,49 +43,50 @@
 </div>
 
 <script>
-    let socket = null;
-    const statusDisplay = document.getElementById('status');
+  let socket = null;
+  const statusDisplay = document.getElementById('status');
 
-    document.getElementById('connect').onclick = function() {
-        socket = new WebSocket('ws://localhost:3000');
-        socket.onopen = function() {
-            alert('WebSocket connection established.');
-            statusDisplay.textContent = 'Status: Connected';
-        };
+  document.getElementById('connect').onclick = function() {
+      socket = new WebSocket('ws://localhost:3000');
+      socket.onopen = function() {
+          alert('WebSocket connection established.');
+          statusDisplay.textContent = 'Status: Connected';
+      };
 
-        socket.onmessage = function(event) {
-            const messages = document.getElementById('messages');
-            messages.textContent += event.data + '\n'; // Append received message
-            messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
-        };
+      socket.onmessage = function(event) {
+          const messages = document.getElementById('messages');
+          messages.innerHTML += event.data + '<br>'; // Use innerHTML and append <br> for new line
+          messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
+      };
 
-        socket.onclose = function(event) {
-            alert('WebSocket connection closed.');
-            statusDisplay.textContent = 'Status: Disconnected';
-        };
+      socket.onclose = function(event) {
+          alert('WebSocket connection closed.');
+          statusDisplay.textContent = 'Status: Disconnected';
+      };
 
-        socket.onerror = function(error) {
-            alert(`WebSocket error: ${error.message}`);
-            statusDisplay.textContent = 'Status: Error';
-        };
-    };
+      socket.onerror = function(error) {
+          alert(`WebSocket error: ${error.message}`);
+          statusDisplay.textContent = 'Status: Error';
+      };
+  };
 
-    document.getElementById('disconnect').onclick = function() {
-        if (socket) {
-            socket.close();
-            socket = null;
-        }
-    };
+  document.getElementById('disconnect').onclick = function() {
+      if (socket) {
+          socket.close();
+          socket = null;
+      }
+  };
 
-    document.getElementById('send').onclick = function() {
-        const messageInput = document.getElementById('messageInput');
-        if (socket && messageInput.value) {
-            socket.send(messageInput.value);
-            messageInput.value = ''; // Clear input after sending
-        } else {
-            alert('WebSocket is not connected or the message is empty.');
-        }
-    };
+  document.getElementById('send').onclick = function() {
+      const messageInput = document.getElementById('messageInput');
+      if (socket && messageInput.value) {
+          socket.send(messageInput.value);
+          messageInput.value = ''; // Clear input after sending
+      } else {
+          alert('WebSocket is not connected or the message is empty.');
+      }
+  };
 </script>
+
 </body>
 </html>
