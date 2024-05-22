@@ -12,6 +12,22 @@
         margin-bottom: 10px;
         padding: 5px;
         overflow-y: scroll;
+        display: flex;
+        flex-direction: column;
+    }
+    .message {
+        padding: 5px;
+        margin-bottom: 2px;
+        border-radius: 5px;
+        max-width: 60%;
+    }
+    .own-message {
+        align-self: flex-end;
+        background-color: #DCF8C6;
+    }
+    .other-message {
+        align-self: flex-start;
+        background-color: #ECECEC;
     }
     .status {
         margin-top: 5px;
@@ -43,49 +59,66 @@
 </div>
 
 <script>
-  let socket = null;
-  const statusDisplay = document.getElementById('status');
+    let socket = null;
+    const statusDisplay = document.getElementById('status');
+    let clientId = Date.now().toString();
 
-  document.getElementById('connect').onclick = function() {
-      socket = new WebSocket('ws://localhost:3000');
-      socket.onopen = function() {
-          alert('WebSocket connection established.');
-          statusDisplay.textContent = 'Status: Connected';
-      };
+    document.getElementById('connect').onclick = function() {
+        socket = new WebSocket('ws://localhost:3000');
+        socket.onopen = function() {
+            alert('WebSocket connection established.');
+            statusDisplay.textContent = 'Status: Connected';
+            socket.send('clientId:' + clientId);
+        };
 
-      socket.onmessage = function(event) {
-          const messages = document.getElementById('messages');
-          messages.innerHTML += event.data + '<br>'; // Use innerHTML and append <br> for new line
-          messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
-      };
+        socket.onmessage = function(event) {
+            const messageData = event.data.split(':');
+            const senderId = messageData[0];
+            const message = messageData.slice(1).join(':'); // Rejoin the rest of the message
 
-      socket.onclose = function(event) {
-          alert('WebSocket connection closed.');
-          statusDisplay.textContent = 'Status: Disconnected';
-      };
+            const messages = document.getElementById('messages');
+            let messageElement = document.createElement('div');
+            messageElement.classList.add('message');
 
-      socket.onerror = function(error) {
-          alert(`WebSocket error: ${error.message}`);
-          statusDisplay.textContent = 'Status: Error';
-      };
-  };
+            if (senderId === clientId) {
+                messageElement.classList.add('own-message');
+                messageElement.textContent = message;
+            } else {
+                messageElement.classList.add('other-message');
+                messageElement.textContent = message;
+            }
 
-  document.getElementById('disconnect').onclick = function() {
-      if (socket) {
-          socket.close();
-          socket = null;
-      }
-  };
+            messages.appendChild(messageElement);
+            messages.scrollTop = messages.scrollHeight;
+        };
 
-  document.getElementById('send').onclick = function() {
-      const messageInput = document.getElementById('messageInput');
-      if (socket && messageInput.value) {
-          socket.send(messageInput.value);
-          messageInput.value = ''; // Clear input after sending
-      } else {
-          alert('WebSocket is not connected or the message is empty.');
-      }
-  };
+        socket.onclose = function(event) {
+            alert('WebSocket connection closed.');
+            statusDisplay.textContent = 'Status: Disconnected';
+        };
+
+        socket.onerror = function(error) {
+            alert(`WebSocket error: ${error.message}`);
+            statusDisplay.textContent = 'Status: Error';
+        };
+    };
+
+    document.getElementById('disconnect').onclick = function() {
+        if (socket) {
+            socket.close();
+            socket = null;
+        }
+    };
+
+    document.getElementById('send').onclick = function() {
+        const messageInput = document.getElementById('messageInput');
+        if (socket && messageInput.value) {
+            socket.send(messageInput.value);
+            messageInput.value = '';
+        } else {
+            alert('WebSocket is not connected or the message is empty.');
+        }
+    };
 </script>
 
 </body>
