@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebSocket Communication</title>
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    #messages {
+        height: 200px;
+        border: 1px solid #ccc;
+        margin-bottom: 10px;
+        padding: 5px;
+        overflow-y: scroll;
+    }
+    .status {
+        margin-top: 5px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="row mt-4 mb-2">
+        <div class="col text-center">
+            <button id="connect" class="btn btn-primary">Connect WebSocket</button>
+            <button id="disconnect" class="btn btn-danger">Disconnect WebSocket</button>
+            <div id="status" class="status text-muted">Status: Disconnected</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="messageInput">Send Message</label>
+                <input type="text" id="messageInput" class="form-control" placeholder="Enter message">
+                <button id="send" class="btn btn-success mt-2">Send</button>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label>Received Message</label>
+            <div id="messages" class="form-control"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let socket = null;
+    const statusDisplay = document.getElementById('status');
+
+    document.getElementById('connect').onclick = function() {
+        socket = new WebSocket('ws://localhost:3000');
+        socket.onopen = function() {
+            alert('WebSocket connection established.');
+            statusDisplay.textContent = 'Status: Connected';
+        };
+
+        socket.onmessage = function(event) {
+            const messages = document.getElementById('messages');
+            messages.textContent += event.data + '\n'; // Append received message
+            messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
+        };
+
+        socket.onclose = function(event) {
+            alert('WebSocket connection closed.');
+            statusDisplay.textContent = 'Status: Disconnected';
+        };
+
+        socket.onerror = function(error) {
+            alert(`WebSocket error: ${error.message}`);
+            statusDisplay.textContent = 'Status: Error';
+        };
+    };
+
+    document.getElementById('disconnect').onclick = function() {
+        if (socket) {
+            socket.close();
+            socket = null;
+        }
+    };
+
+    document.getElementById('send').onclick = function() {
+        const messageInput = document.getElementById('messageInput');
+        if (socket && messageInput.value) {
+            socket.send(messageInput.value);
+            messageInput.value = ''; // Clear input after sending
+        } else {
+            alert('WebSocket is not connected or the message is empty.');
+        }
+    };
+</script>
+</body>
+</html>
