@@ -1,35 +1,40 @@
-const express = require('express');
-const WebSocket = require('ws');
-const http = require('http');
+const express = require("express");
+const WebSocket = require("ws");
+const http = require("http");
 
 const app = express();
 const server = http.createServer(app);
 
-// Serve static files from the 'public' directory
-app.use(express.static('public'));
+app.use(express.static("public"));
 
-// Setting up the WebSocket server on top of the HTTP server
 const wss = new WebSocket.Server({ server });
 
-wss.on('connection', function connection(ws) {
-    console.log('A new client connected!');
+wss.on("connection", function connection(ws) {
+  ws.on("message", function incoming(message) {
+    // 确保消息是字符串
+    if (typeof message !== "string") {
+      message = message.toString();
+    }
 
-    ws.on('message', function incoming(message) {
-        console.log('Received: %s', message);
-        // Broadcast the message to all connected clients
-        wss.clients.forEach(function each(client) {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send('Broadcast: ' + message);
-            }
-        });
-    });
+    // 处理设置 clientId 的特殊消息
+    if (message.startsWith("clientId:")) {
+      ws.clientId = message.split(":")[1];
+      return; // 不向客户端发送这条消息
+    }
 
-    ws.on('close', () => {
-        console.log('A client has disconnected');
+    // 广播消息给所有客户端，包括发送者
+    const formattedMessage = ws.clientId
+      ? `${ws.clientId}:${message}`
+      : `Anonymous:${message}`;
+    wss.clients.forEach(function each(client) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(formattedMessage);
+      }
     });
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}/`);
+  console.log(`Server is running on http://localhost:${PORT}/`);
 });

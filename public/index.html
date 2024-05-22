@@ -1,91 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WebSocket Communication</title>
-<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
-<style>
-    #messages {
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Communication</title>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      #messages {
         height: 200px;
         border: 1px solid #ccc;
         margin-bottom: 10px;
         padding: 5px;
-        overflow-y: scroll;
-    }
-    .status {
-        margin-top: 5px;
-    }
-</style>
-</head>
-<body>
-<div class="container">
-    <div class="row mt-4 mb-2">
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .message {
+        padding: 5px;
+        margin-bottom: 2px;
+        border-radius: 5px;
+        max-width: 100%; /* 设置最大宽度为100% */
+        word-wrap: break-word; /* 允许单词在需要的时候断行 */
+      }
+
+      .own-message {
+        align-self: flex-end;
+        background-color: #dcf8c6;
+        width: fit-content; /* 适应内容宽度 */
+        max-width: 80%; /* 最大宽度为父容器的80% */
+      }
+
+      .other-message {
+        align-self: flex-start;
+        background-color: #ececec;
+        width: fit-content; /* 适应内容宽度 */
+        max-width: 80%; /* 最大宽度为父容器的80% */
+      }
+      .client-id {
+        font-size: smaller;
+        color: gray;
+        width: fit-content; /* Adjust width to content */
+        margin-bottom: 2px; /* Spacing between client ID and the message */
+      }
+
+      .own-client-id {
+        align-self: flex-end; /* Aligns the client ID to the right */
+      }
+
+      .other-client-id {
+        align-self: flex-start; /* Aligns the client ID to the left */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row mt-4 mb-2">
         <div class="col text-center">
-            <button id="connect" class="btn btn-primary">Connect WebSocket</button>
-            <button id="disconnect" class="btn btn-danger">Disconnect WebSocket</button>
-            <div id="status" class="status text-muted">Status: Disconnected</div>
+          <button id="connect" class="btn btn-primary">
+            Connect WebSocket
+          </button>
+          <button id="disconnect" class="btn btn-danger">
+            Disconnect WebSocket
+          </button>
+          <div id="status" class="status text-muted">Status: Disconnected</div>
+          <div id="clientId" class="clientId text-muted">
+            clientId: Disconnected
+          </div>
         </div>
-    </div>
-    <div class="row">
+      </div>
+      <div class="row">
         <div class="col-md-6">
-            <div class="form-group">
-                <label for="messageInput">Send Message</label>
-                <input type="text" id="messageInput" class="form-control" placeholder="Enter message">
-                <button id="send" class="btn btn-success mt-2">Send</button>
-            </div>
+          <div class="form-group">
+            <label for="messageInput">Send Message</label>
+            <input
+              type="text"
+              id="messageInput"
+              class="form-control"
+              placeholder="Enter message"
+            />
+            <button id="send" class="btn btn-success mt-2">Send</button>
+          </div>
         </div>
         <div class="col-md-6">
-            <label>Received Message</label>
-            <div id="messages" class="form-control"></div>
+          <label>Received Message</label>
+          <div id="messages" class="form-control"></div>
         </div>
+      </div>
     </div>
-</div>
 
-<script>
-    let socket = null;
-    const statusDisplay = document.getElementById('status');
+    <script>
+      let socket = null;
+      const statusDisplay = document.getElementById("status");
+      const clientIdDisplay = document.getElementById("clientId"); // 获取显示 clientId 的元素
+      let clientId = Date.now().toString(); // 生成一个唯一的 clientId
 
-    document.getElementById('connect').onclick = function() {
-        socket = new WebSocket('ws://localhost:3000');
-        socket.onopen = function() {
-            alert('WebSocket connection established.');
-            statusDisplay.textContent = 'Status: Connected';
+      document.getElementById("connect").onclick = function () {
+        socket = new WebSocket("ws://localhost:3000");
+        socket.onopen = function () {
+          alert("WebSocket connection established.");
+          statusDisplay.textContent = "Status: Connected";
+          clientIdDisplay.textContent = "Client ID: " + clientId; // Display current client ID
+          socket.send("clientId:" + clientId);
         };
 
-        socket.onmessage = function(event) {
-            const messages = document.getElementById('messages');
-            messages.textContent += event.data + '\n'; // Append received message
-            messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
+        socket.onmessage = function (event) {
+          const messages = document.getElementById("messages");
+          const data = event.data.split(":");
+          const senderId = data[0];
+          const message = data.slice(1).join(":");
+
+          // Create the client ID display element
+          let clientIdElement = document.createElement("div");
+          clientIdElement.textContent = "Client ID: " + senderId;
+
+          // Create the message content element
+          let messageElement = document.createElement("div");
+          messageElement.classList.add("message");
+          messageElement.textContent = message;
+
+          // Apply styles based on sender identity
+          if (senderId === clientId) {
+            clientIdElement.className = "client-id own-client-id";
+            messageElement.classList.add("own-message");
+          } else {
+            clientIdElement.className = "client-id other-client-id";
+            messageElement.classList.add("other-message");
+          }
+
+          // Append the client ID and message elements
+          messages.appendChild(clientIdElement);
+          messages.appendChild(messageElement);
+          messages.scrollTop = messages.scrollHeight;
         };
 
-        socket.onclose = function(event) {
-            alert('WebSocket connection closed.');
-            statusDisplay.textContent = 'Status: Disconnected';
+        // Handle close and errors similarly
+        socket.onclose = function (event) {
+          alert("WebSocket connection closed.");
+          statusDisplay.textContent = "Status: Disconnected";
+          clientIdDisplay.textContent = "Client ID: Disconnected"; // Clear client ID display
         };
 
-        socket.onerror = function(error) {
-            alert(`WebSocket error: ${error.message}`);
-            statusDisplay.textContent = 'Status: Error';
+        socket.onerror = function (error) {
+          alert(`WebSocket error: ${error.message}`);
+          statusDisplay.textContent = "Status: Error";
+          clientIdDisplay.textContent = "Client ID: Error"; // Display error state
         };
-    };
+      };
 
-    document.getElementById('disconnect').onclick = function() {
+      document.getElementById("disconnect").onclick = function () {
         if (socket) {
-            socket.close();
-            socket = null;
+          socket.close();
+          socket = null;
+          statusDisplay.textContent = "Status: Disconnected";
+          clientIdDisplay.textContent = "Client ID: Disconnected"; // Update display on manual disconnect
         }
-    };
+      };
 
-    document.getElementById('send').onclick = function() {
-        const messageInput = document.getElementById('messageInput');
+      document.getElementById("send").onclick = function () {
+        const messageInput = document.getElementById("messageInput");
         if (socket && messageInput.value) {
-            socket.send(messageInput.value);
-            messageInput.value = ''; // Clear input after sending
+          socket.send(messageInput.value);
+          messageInput.value = ""; // Clear input after sending
         } else {
-            alert('WebSocket is not connected or the message is empty.');
+          alert("WebSocket is not connected or the message is empty.");
         }
-    };
-</script>
-</body>
+      };
+    </script>
+  </body>
 </html>
